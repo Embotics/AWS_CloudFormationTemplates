@@ -1,0 +1,799 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+	
+    "Description": "CloudFormation to Deploy EMR clusters",
+	
+    "Parameters": {
+        "clusterName": {
+            "Description": "Name of the cluster",
+            "Type": "String"
+        },
+        "taskInstanceCount": {
+            "Description": "Number of task instances",
+            "Type": "String",
+            "AllowedValues": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7"
+            ],
+            "ConstraintDescription": "Up to 7 nodes only"
+        },
+		"CoreInstanceCount": {
+            "Description": "Number of Core instances",
+            "Type": "String",
+            "AllowedValues": [
+                "1",
+                "2",
+                "3",
+				"4",
+				"5"
+            ],
+            "ConstraintDescription": "Up to 5 nodes only"
+        },
+        "emrVersion": {
+			"Default": "emr-5.4.0",
+            "Description": "Version of EMR",
+            "Type": "String",
+			"AllowedValues" : [ "emr-5.4.0", "emr-5.5.0", "emr-5.6.0", "emr-5.7.0" ],
+            "ConstraintDescription": "Must be a valid emr version"
+        },
+        "masterInstanceType": {
+			"Default": "m1.medium",
+            "Description": "Instance type of the master node",
+            "Type": "String",
+			"AllowedValues" : [ "m1.medium", "m1.large", "m1.xlarge", "m3.xlarge", "m3.2xlarge", "m4.large", "m4.xlarge" ],
+			"ConstraintDescription": "Must be a valid EMR instance type"
+        },
+		  "CoreInstanceType": {
+			"Default": "m1.medium",
+            "Description": "Instance type of each core node",
+            "Type": "String",
+			"AllowedValues" : [ "m1.medium", "m1.large", "m1.xlarge", "m3.xlarge", "m3.2xlarge", "m4.large", "m4.xlarge" ],
+			"ConstraintDescription": "Must be a valid EMR instance type"
+        },
+		  "taskInstanceType": {
+			"Default": "m1.medium",
+            "Description": "Instance type of each task node",
+            "Type": "String",
+			"AllowedValues" : [ "m1.medium", "m1.large", "m1.xlarge", "m3.xlarge", "m3.2xlarge", "m4.large", "m4.xlarge" ],
+			"ConstraintDescription": "Must be a valid EMR instance type"
+        },
+        "awsRegion": {
+            "Description": "awsRegion",
+            "Type": "String"
+        },
+		"Ec2KeyName": {
+            "Description": "Ec2KeyName",
+            "Type": "String"
+        },
+		"terminationProtected": {
+			"Default": "false",
+            "Description": "Is the cluster to have termination protection enabled",
+            "Type": "String",
+            "AllowedValues": [
+                "true",
+                "false"
+            ],
+            "ConstraintDescription": "Boolean"
+        },
+		"EmrManagedSecurityGroup": {
+            "Description": "EmrManagedSecurityGroup",
+            "Type": "String"
+        },
+		"Applications": {
+			"Default": "Hadoop, Hive",
+            "Description": "Installed Applications",
+            "Type": "String",
+			"AllowedValues" : [ "Hadoop, Hive", "Hadoop, Hive, HBase, Zookeeper", "Hadoop, Hive, Hue", "Hadoop, Hive, HBase", "Hadoop, Hive, Spark, Zeppelin, HBase, Zookeeper" ],
+            "ConstraintDescription": "Must be valid Applications"
+        },
+		 "Ec2SubnetId": {
+            "Description": "Ec2SubnetId",
+            "Type": "String"
+        }
+    },
+    "Conditions" : {
+		"HH" : {"Fn::Equals" : [{"Ref" : "Applications"}, "Hadoop, Hive"]},
+		"HHHZ" : {"Fn::Equals" : [{"Ref" : "Applications"}, "Hadoop, Hive, HBase, Zookeeper"]},
+		"HHHue" : {"Fn::Equals" : [{"Ref" : "Applications"}, "Hadoop, Hive, Hue"]},
+		"HHHbase" : {"Fn::Equals" : [{"Ref" : "Applications"}, "Hadoop, Hive, HBase"]},
+		"HHSZHZ" : {"Fn::Equals" : [{"Ref" : "Applications"}, "Hadoop, Hive, Spark, Zeppelin, HBase, Zookeeper"]}
+
+	},
+    "Resources": {
+        "EMRCluster1": {
+            "Type": "AWS::EMR::Cluster",
+			"Condition" : "HH",
+            "Properties": {
+                "Instances": {
+                    "MasterInstanceGroup": {
+                        "InstanceCount": 1,
+                        "InstanceType": {
+                            "Ref": "masterInstanceType"
+                        },
+                        "Market": "ON_DEMAND",
+                        "Name": "Master instance group - 1"
+                    },
+                    "CoreInstanceGroup": {
+                        "InstanceCount": {
+                            "Ref": "CoreInstanceCount"
+                        },
+                        "InstanceType": {
+                            "Ref": "CoreInstanceType"
+                        },
+                        "Market": "ON_DEMAND",
+                        "Name": "Core instance group - 2"
+                    },
+                    "TerminationProtected": {
+                        "Ref": "terminationProtected"
+                    },
+                    "Ec2SubnetId": {
+                            "Ref": "Ec2SubnetId"
+                        },
+                    "Ec2KeyName":{
+                            "Ref": "Ec2KeyName"
+                        },
+                    "EmrManagedMasterSecurityGroup": {
+                            "Ref": "EmrManagedSecurityGroup"
+                        },
+                    "EmrManagedSlaveSecurityGroup": {
+                            "Ref": "EmrManagedSecurityGroup"
+                        }
+
+                },
+                "Configurations": [
+                    {
+                        "Classification": "hadoop-log4j",
+                        "ConfigurationProperties": {
+                            "hadoop.log.maxfilesize": "256MB",
+                            "hadoop.log.maxbackupindex": "3",
+                            "hadoop.security.log.maxfilesize": "256MB",
+                            "hadoop.security.log.maxbackupindex": "3",
+                            "hdfs.audit.log.maxfilesize": "256MB",
+                            "hdfs.audit.log.maxbackupindex": "3",
+                            "mapred.audit.log.maxfilesize": "256MB",
+                            "mapred.audit.log.maxbackupindex": "3",
+                            "hadoop.mapreduce.jobsummary.log.maxfilesize": "256MB",
+                            "hadoop.mapreduce.jobsummary.log.maxbackupindex": "3"
+                        }
+                    },
+					{
+                        "Classification": "core-site",
+                        "ConfigurationProperties": {
+                            "hadoop.proxyuser.devbld.groups" :"*", 
+							"hadoop.proxyuser.devbld.hosts" :"*", 
+							"hadoop.proxyuser.dtmqa.groups" :"*",
+							"hadoop.proxyuser.dtmqa.hosts" :"*"
+                        }
+                    },
+                    {
+                        "Classification": "hbase-log4j",
+                        "ConfigurationProperties": {
+                            "hbase.log.maxbackupindex": "3",
+                            "hbase.log.maxfilesize": "10MB",
+                            "hbase.security.log.maxbackupindex": "3",
+                            "hbase.security.log.maxfilesize": "10MB"
+                        }
+                    },
+                    {
+                        "Classification": "yarn-site",
+                        "ConfigurationProperties": {
+                            "yarn.log-aggregation.retain-seconds": "43200",
+							"yarn.scheduler.minimum-allocation-mb": "256",
+							"yarn.nodemanager.vmem-check-enabled": "false"
+                        }
+                    }
+                ],
+                "Applications": [
+                    {
+                        "Name": "Hadoop"
+                    },
+                    {
+                        "Name": "Hive"
+                    }
+                ],									
+                "Name": {
+                    "Ref": "clusterName"
+                },
+                "JobFlowRole": "EMR_EC2_DefaultRole",
+                "ServiceRole": "EMR_DefaultRole",
+                "ReleaseLabel": {
+                    "Ref": "emrVersion"
+                },
+                "VisibleToAllUsers": true
+            }
+		},	
+		"EMRTaskNodes1": {
+            "Type": "AWS::EMR::InstanceGroupConfig",
+			"Condition" : "HH",
+            "Properties": {
+                "InstanceCount": {
+                    "Ref": "taskInstanceCount"
+                },
+                "InstanceType": {
+                    "Ref": "taskInstanceType"
+                },
+                "Market": "ON_DEMAND",
+                "InstanceRole": "TASK",
+                "Name": "Task instance group - 3",
+                "JobFlowId": {
+                    "Ref": "EMRCluster1"
+                }
+            }
+        },
+
+        "EMRCluster2": {
+            "Type": "AWS::EMR::Cluster",
+			"Condition" : "HHHZ",
+            "Properties": {
+                "Instances": {
+                    "MasterInstanceGroup": {
+                        "InstanceCount": 1,
+                        "InstanceType": {
+                            "Ref": "masterInstanceType"
+                        },
+                        "Market": "ON_DEMAND",
+                        "Name": "Master instance group - 1"
+                    },
+                    "CoreInstanceGroup": {
+                        "InstanceCount": {
+                            "Ref": "CoreInstanceCount"
+                        },
+                        "InstanceType": {
+                            "Ref": "CoreInstanceType"
+                        },
+                        "Market": "ON_DEMAND",
+                        "Name": "Core instance group - 2"
+                    },
+                    "TerminationProtected": {
+                        "Ref": "terminationProtected"
+                    },
+                    "Ec2SubnetId": {
+                            "Ref": "Ec2SubnetId"
+                        },
+                    "Ec2KeyName":{
+                            "Ref": "Ec2KeyName"
+                        },
+                    "EmrManagedMasterSecurityGroup": {
+                            "Ref": "EmrManagedSecurityGroup"
+                        },
+                    "EmrManagedSlaveSecurityGroup": {
+                            "Ref": "EmrManagedSecurityGroup"
+                        }
+
+                },
+                "Configurations": [
+                    {
+                        "Classification": "hadoop-log4j",
+                        "ConfigurationProperties": {
+                            "hadoop.log.maxfilesize": "256MB",
+                            "hadoop.log.maxbackupindex": "3",
+                            "hadoop.security.log.maxfilesize": "256MB",
+                            "hadoop.security.log.maxbackupindex": "3",
+                            "hdfs.audit.log.maxfilesize": "256MB",
+                            "hdfs.audit.log.maxbackupindex": "3",
+                            "mapred.audit.log.maxfilesize": "256MB",
+                            "mapred.audit.log.maxbackupindex": "3",
+                            "hadoop.mapreduce.jobsummary.log.maxfilesize": "256MB",
+                            "hadoop.mapreduce.jobsummary.log.maxbackupindex": "3"
+                        }
+                    },
+					{
+                        "Classification": "core-site",
+                        "ConfigurationProperties": {
+                            "hadoop.proxyuser.devbld.groups" :"*", 
+							"hadoop.proxyuser.devbld.hosts" :"*", 
+							"hadoop.proxyuser.dtmqa.groups" :"*",
+							"hadoop.proxyuser.dtmqa.hosts" :"*"
+                        }
+                    },
+                    {
+                        "Classification": "hbase-log4j",
+                        "ConfigurationProperties": {
+                            "hbase.log.maxbackupindex": "3",
+                            "hbase.log.maxfilesize": "10MB",
+                            "hbase.security.log.maxbackupindex": "3",
+                            "hbase.security.log.maxfilesize": "10MB"
+                        }
+                    },
+                    {
+                        "Classification": "yarn-site",
+                        "ConfigurationProperties": {
+                            "yarn.log-aggregation.retain-seconds": "43200",
+							"yarn.scheduler.minimum-allocation-mb": "256",
+							"yarn.nodemanager.resource.memory-mb": "16000",
+							"yarn.nodemanager.resource.cpu-vcores": "24",
+							"yarn.scheduler.maximum-allocation-mb": "16384",
+							"yarn.nodemanager.vmem-check-enabled": "false"
+                        }
+                    }
+                ],
+                "Applications": [
+                    {
+                        "Name": "Hadoop"
+                    },
+                    {
+                        "Name": "Hive"
+                    },
+                    {
+                        "Name": "HBase"
+                    },
+                    {
+                        "Name": "Zookeeper"
+                    }
+                ],									
+                "Name": {
+                    "Ref": "clusterName"
+                },
+                "JobFlowRole": "EMR_EC2_DefaultRole",
+                "ServiceRole": "EMR_DefaultRole",
+                "ReleaseLabel": {
+                    "Ref": "emrVersion"
+                },
+                "VisibleToAllUsers": true
+            }
+		},	
+		"EMRTaskNodes2": {
+            "Type": "AWS::EMR::InstanceGroupConfig",
+						"Condition" : "HHHZ",
+            "Properties": {
+                "InstanceCount": {
+                    "Ref": "taskInstanceCount"
+                },
+                "InstanceType": {
+                    "Ref": "taskInstanceType"
+                },
+                "Market": "ON_DEMAND",
+                "InstanceRole": "TASK",
+                "Name": "Task instance group - 3",
+                "JobFlowId": {
+                    "Ref": "EMRCluster2"
+                }
+            }
+        },
+        "EMRCluster3": {
+            "Type": "AWS::EMR::Cluster",
+			"Condition" : "HHHue",
+            "Properties": {
+                "Instances": {
+                    "MasterInstanceGroup": {
+                        "InstanceCount": 1,
+                        "InstanceType": {
+                            "Ref": "masterInstanceType"
+                        },
+                        "Market": "ON_DEMAND",
+                        "Name": "Master instance group - 1"
+                    },
+                    "CoreInstanceGroup": {
+                        "InstanceCount": {
+                            "Ref": "CoreInstanceCount"
+                        },
+                        "InstanceType": {
+                            "Ref": "CoreInstanceType"
+                        },
+                        "Market": "ON_DEMAND",
+                        "Name": "Core instance group - 2"
+                    },
+                    "TerminationProtected": {
+                        "Ref": "terminationProtected"
+                    },
+                    "Ec2SubnetId": {
+                            "Ref": "Ec2SubnetId"
+                        },
+                    "Ec2KeyName":{
+                            "Ref": "Ec2KeyName"
+                        },
+                    "EmrManagedMasterSecurityGroup": {
+                            "Ref": "EmrManagedSecurityGroup"
+                        },
+                    "EmrManagedSlaveSecurityGroup": {
+                            "Ref": "EmrManagedSecurityGroup"
+                        }
+
+                },
+                "Configurations": [
+                    {
+                        "Classification": "hadoop-log4j",
+                        "ConfigurationProperties": {
+                            "hadoop.log.maxfilesize": "256MB",
+                            "hadoop.log.maxbackupindex": "3",
+                            "hadoop.security.log.maxfilesize": "256MB",
+                            "hadoop.security.log.maxbackupindex": "3",
+                            "hdfs.audit.log.maxfilesize": "256MB",
+                            "hdfs.audit.log.maxbackupindex": "3",
+                            "mapred.audit.log.maxfilesize": "256MB",
+                            "mapred.audit.log.maxbackupindex": "3",
+                            "hadoop.mapreduce.jobsummary.log.maxfilesize": "256MB",
+                            "hadoop.mapreduce.jobsummary.log.maxbackupindex": "3"
+                        }
+                    },
+					{
+                        "Classification": "core-site",
+                        "ConfigurationProperties": {
+                            "hadoop.proxyuser.devbld.groups" :"*", 
+							"hadoop.proxyuser.devbld.hosts" :"*", 
+							"hadoop.proxyuser.dtmqa.groups" :"*",
+							"hadoop.proxyuser.dtmqa.hosts" :"*"
+                        }
+                    },
+                    {
+                        "Classification": "hbase-log4j",
+                        "ConfigurationProperties": {
+                            "hbase.log.maxbackupindex": "3",
+                            "hbase.log.maxfilesize": "10MB",
+                            "hbase.security.log.maxbackupindex": "3",
+                            "hbase.security.log.maxfilesize": "10MB"
+                        }
+                    },
+                    {
+                        "Classification": "yarn-site",
+                        "ConfigurationProperties": {
+                            "yarn.log-aggregation.retain-seconds": "43200",
+							"yarn.scheduler.minimum-allocation-mb": "256",
+							"yarn.nodemanager.resource.memory-mb": "16000",
+							"yarn.nodemanager.resource.cpu-vcores": "24",
+							"yarn.scheduler.maximum-allocation-mb": "16384",
+							"yarn.nodemanager.vmem-check-enabled": "false"
+                        }
+                    }
+                ],
+                "Applications": [
+                    {
+                        "Name": "Hadoop"
+                    },
+                    {
+                        "Name": "Hive"
+                    },
+                    {
+                        "Name": "Hue"
+                    }
+                ],									
+                "Name": {
+                    "Ref": "clusterName"
+                },
+                "JobFlowRole": "EMR_EC2_DefaultRole",
+                "ServiceRole": "EMR_DefaultRole",
+                "ReleaseLabel": {
+                    "Ref": "emrVersion"
+                },
+                "VisibleToAllUsers": true
+            }
+		},	
+		"EMRTaskNodes3": {
+					"Condition" : "HHHue",
+            "Type": "AWS::EMR::InstanceGroupConfig",
+            "Properties": {
+                "InstanceCount": {
+                    "Ref": "taskInstanceCount"
+                },
+                "InstanceType": {
+                    "Ref": "taskInstanceType"
+                },
+                "Market": "ON_DEMAND",
+                "InstanceRole": "TASK",
+                "Name": "Task instance group - 3",
+                "JobFlowId": {
+                    "Ref": "EMRCluster3"
+                }
+            }
+        },
+
+        "EMRCluster4": {
+            "Type": "AWS::EMR::Cluster",
+			"Condition" : "HHHbase",
+            "Properties": {
+                "Instances": {
+                    "MasterInstanceGroup": {
+                        "InstanceCount": 1,
+                        "InstanceType": {
+                            "Ref": "masterInstanceType"
+                        },
+                        "Market": "ON_DEMAND",
+                        "Name": "Master instance group - 1"
+                    },
+                    "CoreInstanceGroup": {
+                        "InstanceCount": {
+                            "Ref": "CoreInstanceCount"
+                        },
+                        "InstanceType": {
+                            "Ref": "CoreInstanceType"
+                        },
+                        "Market": "ON_DEMAND",
+                        "Name": "Core instance group - 2"
+                    },
+                    "TerminationProtected": {
+                        "Ref": "terminationProtected"
+                    },
+                    "Ec2SubnetId": {
+                            "Ref": "Ec2SubnetId"
+                        },
+                    "Ec2KeyName":{
+                            "Ref": "Ec2KeyName"
+                        },
+                    "EmrManagedMasterSecurityGroup": {
+                            "Ref": "EmrManagedSecurityGroup"
+                        },
+                    "EmrManagedSlaveSecurityGroup": {
+                            "Ref": "EmrManagedSecurityGroup"
+                        }
+
+                },
+                "Configurations": [
+                    {
+                        "Classification": "hadoop-log4j",
+                        "ConfigurationProperties": {
+                            "hadoop.log.maxfilesize": "256MB",
+                            "hadoop.log.maxbackupindex": "3",
+                            "hadoop.security.log.maxfilesize": "256MB",
+                            "hadoop.security.log.maxbackupindex": "3",
+                            "hdfs.audit.log.maxfilesize": "256MB",
+                            "hdfs.audit.log.maxbackupindex": "3",
+                            "mapred.audit.log.maxfilesize": "256MB",
+                            "mapred.audit.log.maxbackupindex": "3",
+                            "hadoop.mapreduce.jobsummary.log.maxfilesize": "256MB",
+                            "hadoop.mapreduce.jobsummary.log.maxbackupindex": "3"
+                        }
+                    },
+					{
+                        "Classification": "core-site",
+                        "ConfigurationProperties": {
+                            "hadoop.proxyuser.devbld.groups" :"*", 
+							"hadoop.proxyuser.devbld.hosts" :"*", 
+							"hadoop.proxyuser.dtmqa.groups" :"*",
+							"hadoop.proxyuser.dtmqa.hosts" :"*"
+                        }
+                    },
+                    {
+                        "Classification": "hbase-log4j",
+                        "ConfigurationProperties": {
+                            "hbase.log.maxbackupindex": "3",
+                            "hbase.log.maxfilesize": "10MB",
+                            "hbase.security.log.maxbackupindex": "3",
+                            "hbase.security.log.maxfilesize": "10MB"
+                        }
+                    },
+                    {
+                        "Classification": "yarn-site",
+                        "ConfigurationProperties": {
+                            "yarn.log-aggregation.retain-seconds": "43200",
+							"yarn.scheduler.minimum-allocation-mb": "256",
+							"yarn.nodemanager.resource.memory-mb": "16000",
+							"yarn.nodemanager.resource.cpu-vcores": "24",
+							"yarn.scheduler.maximum-allocation-mb": "16384",
+							"yarn.nodemanager.vmem-check-enabled": "false"
+                        }
+                    }
+                ],
+                "Applications": [
+                    {
+                        "Name": "Hadoop"
+                    },
+                    {
+                        "Name": "Hive"
+                    },
+                    {
+                        "Name": "HBase"
+                    }
+                ],									
+                "Name": {
+                    "Ref": "clusterName"
+                },
+                "JobFlowRole": "EMR_EC2_DefaultRole",
+                "ServiceRole": "EMR_DefaultRole",
+                "ReleaseLabel": {
+                    "Ref": "emrVersion"
+                },
+                "VisibleToAllUsers": true
+            }
+		},	
+		"EMRTaskNodes4": {
+            "Type": "AWS::EMR::InstanceGroupConfig",
+						"Condition" : "HHHbase",
+            "Properties": {
+                "InstanceCount": {
+                    "Ref": "taskInstanceCount"
+                },
+                "InstanceType": {
+                    "Ref": "taskInstanceType"
+                },
+                "Market": "ON_DEMAND",
+                "InstanceRole": "TASK",
+                "Name": "Task instance group - 3",
+                "JobFlowId": {
+                    "Ref": "EMRCluster4"
+                }
+            }
+        },
+        "EMRCluster5": {
+            "Type": "AWS::EMR::Cluster",
+			"Condition" : "HHSZHZ",
+            "Properties": {
+                "Instances": {
+                    "MasterInstanceGroup": {
+                        "InstanceCount": 1,
+                        "InstanceType": {
+                            "Ref": "masterInstanceType"
+                        },
+                        "Market": "ON_DEMAND",
+                        "Name": "Master instance group - 1"
+                    },
+                    "CoreInstanceGroup": {
+                        "InstanceCount": {
+                            "Ref": "CoreInstanceCount"
+                        },
+                        "InstanceType": {
+                            "Ref": "CoreInstanceType"
+                        },
+                        "Market": "ON_DEMAND",
+                        "Name": "Core instance group - 2"
+                    },
+                    "TerminationProtected": {
+                        "Ref": "terminationProtected"
+                    },
+                    "Ec2SubnetId": {
+                            "Ref": "Ec2SubnetId"
+                        },
+                    "Ec2KeyName":{
+                            "Ref": "Ec2KeyName"
+                        },
+                    "EmrManagedMasterSecurityGroup": {
+                            "Ref": "EmrManagedSecurityGroup"
+                        },
+                    "EmrManagedSlaveSecurityGroup": {
+                            "Ref": "EmrManagedSecurityGroup"
+                        }
+
+                },
+                "Configurations": [
+                    {
+                        "Classification": "hadoop-log4j",
+                        "ConfigurationProperties": {
+                            "hadoop.log.maxfilesize": "256MB",
+                            "hadoop.log.maxbackupindex": "3",
+                            "hadoop.security.log.maxfilesize": "256MB",
+                            "hadoop.security.log.maxbackupindex": "3",
+                            "hdfs.audit.log.maxfilesize": "256MB",
+                            "hdfs.audit.log.maxbackupindex": "3",
+                            "mapred.audit.log.maxfilesize": "256MB",
+                            "mapred.audit.log.maxbackupindex": "3",
+                            "hadoop.mapreduce.jobsummary.log.maxfilesize": "256MB",
+                            "hadoop.mapreduce.jobsummary.log.maxbackupindex": "3"
+                        }
+                    },
+					{
+                        "Classification": "core-site",
+                        "ConfigurationProperties": {
+                            "hadoop.proxyuser.devbld.groups" :"*", 
+							"hadoop.proxyuser.devbld.hosts" :"*", 
+							"hadoop.proxyuser.dtmqa.groups" :"*",
+							"hadoop.proxyuser.dtmqa.hosts" :"*"
+                        }
+                    },
+                    {
+                        "Classification": "hbase-log4j",
+                        "ConfigurationProperties": {
+                            "hbase.log.maxbackupindex": "3",
+                            "hbase.log.maxfilesize": "10MB",
+                            "hbase.security.log.maxbackupindex": "3",
+                            "hbase.security.log.maxfilesize": "10MB"
+                        }
+                    },
+                    {
+                        "Classification": "yarn-site",
+                        "ConfigurationProperties": {
+                            "yarn.log-aggregation.retain-seconds": "43200",
+							"yarn.scheduler.minimum-allocation-mb": "256",
+							"yarn.nodemanager.resource.memory-mb": "16000",
+							"yarn.nodemanager.resource.cpu-vcores": "24",
+							"yarn.scheduler.maximum-allocation-mb": "16384",
+							"yarn.nodemanager.vmem-check-enabled": "false"
+                        }
+                    }
+                ],
+                "Applications": [
+                    {
+                        "Name": "Hadoop"
+                    },
+                    {
+                        "Name": "Hive"
+                    },
+                    {
+                        "Name": "HBase"
+                    },
+                    {
+                        "Name": "Spark"
+                    },
+                    {
+                        "Name": "Zeppelin"
+                    },
+                    {
+                        "Name": "Zookeeper"
+                    }
+                ],									
+                "Name": {
+                    "Ref": "clusterName"
+                },
+                "JobFlowRole": "EMR_EC2_DefaultRole",
+                "ServiceRole": "EMR_DefaultRole",
+                "ReleaseLabel": {
+                    "Ref": "emrVersion"
+                },
+                "VisibleToAllUsers": true
+            }
+		},	
+		"EMRTaskNodes5": {
+            "Type": "AWS::EMR::InstanceGroupConfig",
+						"Condition" : "HHSZHZ",
+            "Properties": {
+                "InstanceCount": {
+                    "Ref": "taskInstanceCount"
+                },
+                "InstanceType": {
+                    "Ref": "taskInstanceType"
+                },
+                "Market": "ON_DEMAND",
+                "InstanceRole": "TASK",
+                "Name": "Task instance group - 3",
+                "JobFlowId": {
+                    "Ref": "EMRCluster5"
+                }
+            }
+        }
+	},
+	"Outputs" : {
+		"MasterPublicDNS1": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "EMRCluster1",
+                    "MasterPublicDNS"
+                    ]
+            },
+			"Condition" : "HH",
+            "Description": "MasterPublicDNS for cluser"
+        },
+		"MasterPublicDNS2": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "EMRCluster2",
+                    "MasterPublicDNS"
+                    ]
+            },
+			"Condition" : "HHHZ",
+            "Description": "MasterPublicDNS for cluser"
+        },
+		"MasterPublicDNS3": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "EMRCluster3",
+                    "MasterPublicDNS"
+                    ]
+            },
+			"Condition" : "HHHue",
+            "Description": "MasterPublicDNS for cluser"
+        },
+		"MasterPublicDNS4": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "EMRCluster4",
+                    "MasterPublicDNS"
+                    ]
+            },
+			"Condition" : "HHHbase",
+            "Description": "MasterPublicDNS for cluser"
+        },
+		"MasterPublicDNS5": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "EMRCluster5",
+                    "MasterPublicDNS"
+                    ]
+            },
+			"Condition" : "HHSZHZ",
+            "Description": "MasterPublicDNS for cluser"
+        }
+	}
+}

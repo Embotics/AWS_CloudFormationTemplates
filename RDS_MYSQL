@@ -1,0 +1,116 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Description" : "RDS MySQL DB Stack.",
+  "Parameters": {
+    "VpcId" : {
+      "Type" : "String",
+      "Description" : "VpcId of your existing Virtual Private Cloud (VPC)"
+    },
+
+    "Subnets" : {
+      "Type" : "CommaDelimitedList",
+      "Description" : "The list of SubnetIds, for at least two Availability Zones in the region in your Virtual Private Cloud (VPC)"
+    },
+    "DBName": {
+      "Default": "MyDatabase",
+      "Description" : "The database name",
+      "Type": "String",
+      "MinLength": "1",
+      "MaxLength": "64",
+      "AllowedPattern" : "[a-zA-Z][a-zA-Z0-9]*",
+      "ConstraintDescription" : "must begin with a letter and contain only alphanumeric characters."
+    },
+	"DBEngineVersion" : {
+      "Description" : "MySQL Database Engine Version",
+      "Type" : "String",
+      "AllowedValues" : [ "5.7.11", "5.7.16", "5.7.17" ],
+      "ConstraintDescription" : "must select a valid MySQL database Engine."
+    },	
+    "DBUser": {
+      "NoEcho": "true",
+      "Description" : "The database admin account username",
+      "Type": "String",
+      "MinLength": "1",
+      "MaxLength": "16",
+      "AllowedPattern" : "[a-zA-Z][a-zA-Z0-9]*",
+      "ConstraintDescription" : "must begin with a letter and contain only alphanumeric characters."
+    },
+	"DBInstanceClass": {
+      "Description": "The node type to be provisioned",
+      "Type": "String",
+      "Default": "db.t2.small",
+      "AllowedValues" : [ "db.t2.large", "db.t2.small", "db.t2.medium" ]
+,
+      "ConstraintDescription" : "must be a valid RDS node type."
+    },
+	"AllocatedStorage": {
+      "Description": "The storage size allocated",
+      "Type": "String",
+      "Default": "5",
+      "AllowedValues" : [ "5", "20", "40", "50", "80", "100"  ]
+,
+      "ConstraintDescription" : "allocated storage size, specified in gigabytes."
+    },
+    "DBPassword": {
+      "NoEcho": "true",
+      "Description" : "The database admin account password",
+      "Type": "String",
+      "MinLength": "8",
+      "MaxLength": "41",
+      "AllowedPattern" : "[a-zA-Z0-9]*",
+      "ConstraintDescription" : "must contain only alphanumeric characters."
+	  }
+    },
+
+  "Resources" : {
+  
+	"DBSubnetGroup" : {
+      "Type" : "AWS::RDS::DBSubnetGroup",
+      "Properties" : {
+        "DBSubnetGroupDescription" : "Subnets available for the RDS DB Instance",
+        "SubnetIds" : { "Ref" : "Subnets" }
+      }
+    },
+
+    "VPCSecurityGroup" : {
+        "Type" : "AWS::EC2::SecurityGroup",
+		"Description" : "Ingress rules to allow access the DB and a secondary icmp as a sample",
+        "Properties" :
+        {
+           "GroupDescription" : "Security group to allow DB access.",
+           "VpcId" : { "Ref" : "VpcId" },
+		   "SecurityGroupIngress" : [ 
+			  { "IpProtocol" : "tcp", "FromPort" : "3306", "ToPort" : "3306", "CidrIp" : "0.0.0.0/0" },
+			  { "IpProtocol" : "icmp", "FromPort" : "8", "ToPort" : "-1", "CidrIp" : "0.0.0.0/0" }
+			]
+        }
+	},
+	
+    "MyDB" : {
+      "Type" : "AWS::RDS::DBInstance",
+      "Properties" : {
+        "DBName" : { "Ref" : "DBName" },
+        "AllocatedStorage" : { "Ref": "AllocatedStorage" },
+        "DBInstanceClass" : { "Ref": "DBInstanceClass" },
+        "Engine" : "MySQL",
+        "EngineVersion" : { "Ref" : "DBEngineVersion" } ,
+        "MasterUsername" : { "Ref" : "DBUser" },
+        "MasterUserPassword" : { "Ref" : "DBPassword" },
+        "DBSubnetGroupName" : { "Ref" : "DBSubnetGroup" },
+        "VPCSecurityGroups" : [ { "Ref" : "VPCSecurityGroup" }  ]
+      }
+    }
+  },
+
+  "Outputs" : {
+    "JDBCConnectionString": {
+      "Description" : "JDBC connection string for the database",
+      "Value" : { "Fn::Join": [ "", [ "jdbc:mysql://",
+                                      { "Fn::GetAtt": [ "MyDB", "Endpoint.Address" ] },
+                                      ":",
+                                      { "Fn::GetAtt": [ "MyDB", "Endpoint.Port" ] },
+                                      "/",
+                                      { "Ref": "DBName" }]]}
+    }
+  }
+}

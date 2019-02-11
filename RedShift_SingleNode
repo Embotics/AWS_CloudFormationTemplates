@@ -1,125 +1,283 @@
 {
-  "AWSTemplateFormatVersion": "2010-09-09",
-
-  "Description": "Amazon Redshift Cluster.",
- 
-  "Parameters": {
-  "VpcId" : {
-      "Type" : "String",
-      "Description" : "VpcId of your existing Virtual Private Cloud (VPC)"
-    },
-    "Subnets" : {
-      "Type" : "CommaDelimitedList",
-      "Description" : "The list of SubnetIds, for at least two Availability Zones in the region in your Virtual Private Cloud (VPC)"
-    },
-    "DatabaseName": {
-      "Description": "The name of the first database to be created when the redshift cluster is created",
-      "Type": "String",
-      "Default": "defaultdb",
-      "AllowedPattern": "([a-z]|[0-9])+",
-      "ConstraintDescription" : "must contain a-z or 0-9 only."
-    },
-
-    "ClusterType": {
-      "Description": "The type of the cluster",
-      "Type": "String",
-      "Default": "single-node",
-      "AllowedValues": [ "single-node", "multi-node" ],
-      "ConstraintDescription" : "must be single-node or multi-node."
-    },
-
-    "NumberOfNodes": {
-      "Description": "The number of compute nodes in the redshift cluster.  When cluster type is specified as: 1) single-node, the NumberOfNodes parameter should be specified as 1, 2) multi-node, the NumberOfNodes parameter should be greater than 1",
-      "Type": "Number",
-      "Default": "1"
-    },
-
-    "NodeType": {
-      "Description": "The node type to be provisioned for the redshift cluster",
-      "Type": "String",
-      "Default": "dc1.large",
-      "AllowedValues" : [ "dw1.xlarge", "dw1.8xlarge", "dw2.large", "dw2.8xlarge", "dc1.large", "dc1.8xlarge", "ds1.xlarge", "ds1.8xlarge", "ds2.xlarge", "ds2.8xlarge" ],
-      "ConstraintDescription" : "must be a valid RedShift node type."
-    },
-
-    "MasterUsername": {
-      "Description": "The user name associated with the master user account for the redshift cluster that is being created",
-      "Type": "String",
-      "AllowedPattern": "([a-z])([a-z]|[0-9])*",
-      "NoEcho": "true",
-      "ConstraintDescription" : "must start with a-z and contain only a-z or 0-9."
-    },
-
-    "MasterUserPassword": {
-      "Description": "The password associated with the aster user account for the redshift cluster that is being created. ",
-      "Type": "String",
-      "NoEcho": "true",
-      "MinLength": "1",
-      "MaxLength": "41",
-      "AllowedPattern" : "[a-zA-Z0-9]*",
-      "ConstraintDescription" : "must contain only alphanumeric characters."
-    }
-  },
-
-  "Conditions": {
-    "IsMultiNodeCluster": { "Fn::Equals": [ { "Ref": "ClusterType" }, "multi-node" ] }
-  },
-
-  "Resources": {
-	"DBSubnetGroup" : {
-      "Type" : "AWS::RDS::DBSubnetGroup",
-      "Properties" : {
-        "DBSubnetGroupDescription" : "Subnets available for the RDS DB Instance",
-        "SubnetIds" : { "Ref" : "Subnets" }
-      }
-    },
-	"VPCSecurityGroup" : {
-        "Type" : "AWS::EC2::SecurityGroup",
-		"Description" : "Ingress rules to allow access the DB and a secondary icmp as a sample",
-        "Properties" :
-        {
-           "GroupDescription" : "Security group to allow DB access.",
-           "VpcId" : { "Ref" : "VpcId" },
-		   "SecurityGroupIngress" : [ 
-			  { "IpProtocol" : "tcp", "FromPort" : "5439", "ToPort" : "5439", "CidrIp" : "0.0.0.0/0" },
-			  { "IpProtocol" : "icmp", "FromPort" : "8", "ToPort" : "-1", "CidrIp" : "0.0.0.0/0" }
-			]
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Amazon Redshift Cluster.",
+    "Parameters": {
+        "VpcId": {
+            "Type": "String",
+            "Description": "VpcId of your existing Virtual Private Cloud (VPC)"
+        },
+        "Subnets": {
+            "Type": "CommaDelimitedList",
+            "Description": "The list of SubnetIds, for at least two Availability Zones in the region in your Virtual Private Cloud (VPC)"
+        },
+        "DatabaseName": {
+            "Description": "The name of the first database to be created when the redshift cluster is created",
+            "Type": "String",
+            "Default": "defaultdb",
+            "AllowedPattern": "([a-z]|[0-9])+",
+            "ConstraintDescription": "must contain a-z or 0-9 only."
+        },
+        "ClusterType": {
+            "Description": "The type of the cluster",
+            "Type": "String",
+            "Default": "single-node",
+            "AllowedValues": [
+                "single-node",
+                "multi-node"
+            ],
+            "ConstraintDescription": "must be single-node or multi-node."
+        },
+        "NumberOfNodes": {
+            "Description": "The number of compute nodes in the redshift cluster.  When cluster type is specified as: 1) single-node, the NumberOfNodes parameter should be specified as 1, 2) multi-node, the NumberOfNodes parameter should be greater than 1",
+            "Type": "Number",
+            "Default": "1"
+        },
+        "NodeType": {
+            "Description": "The node type to be provisioned for the redshift cluster",
+            "Type": "String",
+            "Default": "dc1.large",
+            "AllowedValues": [
+                "dw1.xlarge",
+                "dw1.8xlarge",
+                "dw2.large",
+                "dw2.8xlarge",
+                "dc1.large",
+                "dc1.8xlarge",
+                "ds1.xlarge",
+                "ds1.8xlarge",
+                "ds2.xlarge",
+                "ds2.8xlarge"
+            ],
+            "ConstraintDescription": "must be a valid RedShift node type."
+        },
+        "MasterUsername": {
+            "Description": "The user name associated with the master user account for the redshift cluster that is being created",
+            "Type": "String",
+            "AllowedPattern": "([a-z])([a-z]|[0-9])*",
+            "NoEcho": "true",
+            "ConstraintDescription": "must start with a-z and contain only a-z or 0-9."
+        },
+        "MasterUserPassword": {
+            "Description": "The password associated with the aster user account for the redshift cluster that is being created. ",
+            "Type": "String",
+            "NoEcho": "true",
+            "MinLength": "1",
+            "MaxLength": "41",
+            "AllowedPattern": "[a-zA-Z0-9]*",
+            "ConstraintDescription": "must contain only alphanumeric characters."
         }
     },
-    "RedshiftCluster": {
-      "Type": "AWS::Redshift::Cluster",
-      "Properties": {
-        "ClusterType": { "Ref": "ClusterType" },
-        "NumberOfNodes": { "Fn::If": [ "IsMultiNodeCluster", { "Ref": "NumberOfNodes" }, { "Ref": "AWS::NoValue" } ] },
-        "NodeType": { "Ref": "NodeType" },
-        "DBName": { "Ref": "DatabaseName" },
-        "MasterUsername": { "Ref": "MasterUsername" },
-        "MasterUserPassword": { "Ref": "MasterUserPassword" },
-		"VpcSecurityGroupIds" : [ { "Ref" : "VPCSecurityGroup" } ],
-        "ClusterParameterGroupName": { "Ref": "RedshiftClusterParameterGroup" }
-      }
+    "Conditions": {
+        "IsMultiNodeCluster": {
+            "Fn::Equals": [
+                {
+                    "Ref": "ClusterType"
+                },
+                "multi-node"
+            ]
+        }
     },
-    "RedshiftClusterParameterGroup": {
-      "Type": "AWS::Redshift::ClusterParameterGroup",
-      "Properties": {
-        "Description": "Cluster paraeter group",
-        "ParameterGroupFamily": "redshift-1.0",
-        "Parameters": [ {
-          "ParameterName": "enable_user_activity_logging",
-          "ParameterValue": "true"
-        } ]
-      }
-    }
-  },
-  "Outputs": {
-	"ClusterName" : {
-      "Description" : "Name of cluster",
-      "Value" : { "Ref" : "RedshiftCluster" }
+    "Resources": {
+        "VPCSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Description": "Ingress rules to allow access the DB and a secondary icmp as a sample",
+            "Properties": {
+                "GroupDescription": "Security group to allow DB access.",
+                "VpcId": {
+                    "Ref": "VpcId"
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "5439",
+                        "ToPort": "5439",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "icmp",
+                        "FromPort": "8",
+                        "ToPort": "-1",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ]
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "36628658-b0d5-4af6-8e24-9ee1027164b0"
+                }
+            }
+        },
+        "RedshiftCluster": {
+            "Type": "AWS::Redshift::Cluster",
+            "Properties": {
+                "ClusterType": {
+                    "Ref": "ClusterType"
+                },
+                "NumberOfNodes": {
+                    "Fn::If": [
+                        "IsMultiNodeCluster",
+                        {
+                            "Ref": "NumberOfNodes"
+                        },
+                        {
+                            "Ref": "AWS::NoValue"
+                        }
+                    ]
+                },
+                "NodeType": {
+                    "Ref": "NodeType"
+                },
+                "DBName": {
+                    "Ref": "DatabaseName"
+                },
+                "MasterUsername": {
+                    "Ref": "MasterUsername"
+                },
+                "MasterUserPassword": {
+                    "Ref": "MasterUserPassword"
+                },
+                "ClusterSubnetGroupName": {
+                    "Ref": "RedshiftClusterSubnetGroup"
+                },
+                "ClusterParameterGroupName": {
+                    "Ref": "RedshiftClusterParameterGroup"
+                },
+                "VpcSecurityGroupIds": [
+                     {
+                    "Ref": "VPCSecurityGroup"
+                    }
+                ]
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "ed08e569-ba5a-4790-8e1b-45fe3a66073d"
+                }
+            }
+        },
+        "RedshiftClusterSubnetGroup": {
+            "Type": "AWS::Redshift::ClusterSubnetGroup",
+            "Properties": {
+                "Description": "Cluster paraeter group",
+                "SubnetIds": {
+                    "Ref": "Subnets"
+                }
+            }
+        },
+        "RedshiftClusterParameterGroup": {
+            "Type": "AWS::Redshift::ClusterParameterGroup",
+            "Properties": {
+                "Description": "Cluster paraeter group",
+                "ParameterGroupFamily": "redshift-1.0",
+                "Parameters": [
+                    {
+                        "ParameterName": "enable_user_activity_logging",
+                        "ParameterValue": "true"
+                    }
+                ]
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "7030691f-bf70-4320-838d-aa299a55ed4a"
+                }
+            }
+        }
     },
-    "ClusterEndpoint": {
-      "Description" : "Endpoint for the newly created RedShift cluster",
-      "Value": {
-        "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "RedshiftCluster", "Endpoint.Address" ] }, { "Fn::GetAtt": [ "RedshiftCluster", "Endpoint.Port" ] } ] ] }
+    "Outputs": {
+        "ClusterName": {
+            "Description": "Name of cluster",
+            "Value": {
+                "Ref": "RedshiftCluster"
+            }
+        },
+        "ClusterEndpoint": {
+            "Description": "Endpoint for the newly created RedShift cluster",
+            "Value": {
+                "Fn::Join": [
+                    ":",
+                    [
+                        {
+                            "Fn::GetAtt": [
+                                "RedshiftCluster",
+                                "Endpoint.Address"
+                            ]
+                        },
+                        {
+                            "Fn::GetAtt": [
+                                "RedshiftCluster",
+                                "Endpoint.Port"
+                            ]
+                        }
+                    ]
+                ]
+            }
+        }
+    },
+    "Metadata": {
+        "AWS::CloudFormation::Designer": {
+            "7030691f-bf70-4320-838d-aa299a55ed4a": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 270,
+                    "y": 90
+                },
+                "z": 1,
+                "embeds": []
+            },
+            "36628658-b0d5-4af6-8e24-9ee1027164b0": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 150,
+                    "y": 150
+                },
+                "z": 1,
+                "embeds": []
+            },
+            "91e1b333-57f8-4d7c-97fe-ec1930aab2d9": {
+                "size": {
+                    "width": 150,
+                    "height": 150
+                },
+                "position": {
+                    "x": 360,
+                    "y": 90
+                },
+                "z": 1,
+                "embeds": []
+            },
+            "ed08e569-ba5a-4790-8e1b-45fe3a66073d": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 60,
+                    "y": 300
+                },
+                "z": 1,
+                "embeds": [],
+                "isassociatedwith": [
+                    "7030691f-bf70-4320-838d-aa299a55ed4a"
+                ],
+                "dependson": [
+                    "36628658-b0d5-4af6-8e24-9ee1027164b0",
+                    "91e1b333-57f8-4d7c-97fe-ec1930aab2d9"
+                ]
+            },
+            "dab58dff-bb1a-431e-af53-a8b275025efa": {
+                "source": {
+                    "id": "ed08e569-ba5a-4790-8e1b-45fe3a66073d"
+                },
+                "target": {
+                    "id": "91e1b333-57f8-4d7c-97fe-ec1930aab2d9"
+                },
+                "z": 2
+            }
+        }
     }
-  }
-}
+} 

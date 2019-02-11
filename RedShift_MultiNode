@@ -1,7 +1,7 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
 
-  "Description": " Amazon Redshift Cluster.",
+  "Description": "Amazon Multi-Node Redshift Cluster.",
  
   "Parameters": {
   "VpcId" : {

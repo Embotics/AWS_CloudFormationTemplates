@@ -62,19 +62,12 @@
       "ConstraintDescription" : "must contain only alphanumeric characters."
     }
   },
-
+  
   "Conditions": {
     "IsMultiNodeCluster": { "Fn::Equals": [ { "Ref": "ClusterType" }, "multi-node" ] }
   },
 
   "Resources": {
-   "DBSubnetGroup" : {
-      "Type" : "AWS::RDS::DBSubnetGroup",
-      "Properties" : {
-        "DBSubnetGroupDescription" : "Subnets available for the RDS DB Instance",
-        "SubnetIds" : { "Ref" : "Subnets" }
-      }
-    },
 	"VPCSecurityGroup" : {
         "Type" : "AWS::EC2::SecurityGroup",
 		"Description" : "Ingress rules to allow access the DB and a secondary icmp as a sample",
@@ -98,9 +91,18 @@
         "MasterUsername": { "Ref": "MasterUsername" },
         "MasterUserPassword": { "Ref": "MasterUserPassword" },
         "ClusterParameterGroupName": { "Ref": "RedshiftClusterParameterGroup" },
-		"VpcSecurityGroupIds" : [ { "Ref" : "VPCSecurityGroup" } ],
-        "ClusterSubnetGroupName" : { "Ref" : "DBSubnetGroup" }
+	"VpcSecurityGroupIds" : [ { "Ref" : "VPCSecurityGroup" } ],
+        "ClusterSubnetGroupName" : { "Ref" : "RedshiftClusterSubnetGroup" }
       }
+    },
+    "RedshiftClusterSubnetGroup": {
+            "Type": "AWS::Redshift::ClusterSubnetGroup",
+            "Properties": {
+                "Description": "Cluster paraeter group",
+                "SubnetIds": {
+                    "Ref": "Subnets"
+                }
+            }
     },
     "RedshiftClusterParameterGroup": {
       "Type": "AWS::Redshift::ClusterParameterGroup",

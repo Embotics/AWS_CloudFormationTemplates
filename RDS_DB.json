@@ -110,7 +110,11 @@
 		"JDBCConnectionString": {
 			"Description": "JDBC connection string for the database",
 			"Value": {
-				"Fn::Join": ["", ["jdbc:mysql://",
+				"Fn::Join": ["", ["jdbc:",
+					{
+						"Ref": "DBtype"
+					},
+					"://",
 					{
 						"Fn::GetAtt": ["MyDB", "Endpoint.Address"]
 					},

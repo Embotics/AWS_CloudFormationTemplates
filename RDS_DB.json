@@ -73,6 +73,10 @@
 				"DBName": {
 					"Ref": "DBName"
 				},
+				"DBInstanceIdentifier": {
+					"Ref": "DBName"
+				},
+
 				"AllocatedStorage": {
 					"Ref": "AllocatedStorage"
 				},
@@ -101,7 +105,14 @@
 				},
 				"DBParameterGroupName": {
 					"Ref": "DBParameterGroup"
-				}
+				},
+									"Tags": [{
+							"Key": "Name",
+							"Value": {
+								"Ref": "DBName"
+							}
+						}
+					]
 			}
 		}
 	},

@@ -16,10 +16,6 @@
 			"AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
 			"ConstraintDescription": "must begin with a letter and contain only alphanumeric characters."
 		},
-		"DBParameterGroup": {
-			"Description": "MySQL Database Engine Version",
-			"Type": "String"
-		},
 		"DBUser": {
 			"NoEcho": "true",
 			"Description": "The database admin account username",
@@ -61,14 +57,46 @@
 		"DBtype": {
 			"Description": "Selected DB Type",
 			"Type": "String"
+		},
+		"Family": {
+			"Description": "Selected DB Family",
+			"Type": "String"
+		},
+		"sqlmode": {
+			"Description": "SQL mode",
+			"Type": "String"
+		},
+		"DBPGname": {
+			"Description": "Name of the New DB Parameter Group",
+			"Type": "String"
 		}
 	},
 
 
 	"Resources": {
-
+		"RDSDBParameterGroup": {
+			"Type": "AWS::RDS::DBClusterParameterGroup",
+			"Properties": {
+				"Description": "DB Parameter Group",
+				"Family": {
+					"Ref": "Family"
+				},
+				"Parameters": {
+					"sql_mode": {
+						"Ref": "sqlmode"
+					}
+				},
+				"Tags": [{
+					"Key": "Name",
+					"Value": {
+						"Ref": "DBPGname"
+					}
+				}]
+			}
+		},
 		"DatabaseCluster": {
 			"Type": "AWS::RDS::DBCluster",
+			"DependsOn": "RDSDBParameterGroup",
 			"Properties": {
 				"Engine": "aurora",
 				"MasterUsername": "DBUser",
@@ -78,6 +106,9 @@
 				},
 				"DBClusterIdentifier": {
 					"Ref": "DBName"
+				},
+				"DBClusterParameterGroupName": {
+					"Ref": "RDSDBParameterGroup"
 				},
 				"StorageEncrypted": "true",
 				"KmsKeyId": {

@@ -16,10 +16,6 @@
 			"AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
 			"ConstraintDescription": "must begin with a letter and contain only alphanumeric characters."
 		},
-		"DBParameterGroup": {
-			"Description": "MySQL Database Engine Version",
-			"Type": "String"
-		},
 		"DBUser": {
 			"NoEcho": "true",
 			"Description": "The database admin account username",
@@ -32,7 +28,7 @@
 		"DBInstanceClass": {
 			"Description": "The node type to be provisioned",
 			"Type": "String",
-			"Default": "db.r4.large"
+			"Default": "db.m4.large"
 		},
 		"AllocatedStorage": {
 			"Description": "The storage size allocated",
@@ -61,86 +57,83 @@
 		"DBtype": {
 			"Description": "Selected DB Type",
 			"Type": "String"
+		},
+		"Family": {
+			"Description": "Selected DB Family",
+			"Type": "String"
+		},
+		"sqlmode": {
+			"Description": "SQL mode",
+			"Type": "String"
+		},
+		"DBPGname": {
+			"Description": "Name of the New DB Parameter Group",
+			"Type": "String"
 		}
 	},
 
 
 	"Resources": {
-
-		"DatabaseCluster": {
-			"Type": "AWS::RDS::DBCluster",
+		"RDSDBParameterGroup": {
+			"Type": "AWS::RDS::DBParameterGroup",
 			"Properties": {
-				"Engine": "aurora",
-				"MasterUsername": "DBUser",
-				"MasterUserPassword": "DBPassword",
+				"Description": "DB Parameter Group",
+				"Family": {
+					"Ref": "Family"
+				},
+				"Parameters": {
+					"sql_mode": {
+						"Ref": "sqlmode"
+					}
+				},
+				"Tags": [{
+					"Key": "Name",
+					"Value": {
+						"Ref": "DBPGname"
+					}
+				}]
+			}
+		},
+
+
+		"MyDB": {
+			"Type": "AWS::RDS::DBInstance",
+			"DependsOn" : "RDSDBParameterGroup",
+			"Properties": {
+				"DBName": {
+					"Ref": "DBName"
+				},
+				"AllocatedStorage": {
+					"Ref": "AllocatedStorage"
+				},
+				"DBInstanceIdentifier": {
+					"Ref": "DBName"
+				},
+				"DBInstanceClass": {
+					"Ref": "DBInstanceClass"
+				},
+				"Engine": {
+					"Ref": "DBtype"
+				},
+
+				"MasterUsername": {
+					"Ref": "DBUser"
+				},
+				"MasterUserPassword": {
+					"Ref": "DBPassword"
+				},
 				"DBSubnetGroupName": {
 					"Ref": "SubnetGroup"
 				},
-				"DBClusterIdentifier": {
-					"Ref": "DBName"
-				},
+				"VPCSecurityGroups": [{
+					"Ref": "DBSecurityGroup"
+				}],
 				"StorageEncrypted": "true",
 				"KmsKeyId": {
 					"Ref": "KmsKey"
 				},
-				"VpcSecurityGroupIds": [{
-					"Ref": "DBSecurityGroup"
-				}],
-				"Tags": [{
-					"Key": "Name",
-					"Value": {
-						"Ref": "DBName"
-					}
-				}]
-			}
-		},
-		"DatabasePrimaryInstance": {
-			"Type": "AWS::RDS::DBInstance",
-			"DependsOn": "DatabaseCluster",
-			"Properties": {
-				"Engine": "aurora",
-				"DBClusterIdentifier": {
-					"Ref": "DatabaseCluster"
-				},
-				"DBInstanceIdentifier": {
-					"Fn::Join": ["", [{
-						"Ref": "DBName"
-					}, "-1"]]
-
-				},
-				"DBInstanceClass": {
-					"Ref": "DBInstanceClass"
-				},
-				"DBSubnetGroupName": {
-					"Ref": "SubnetGroup"
-				},
-				"Tags": [{
-					"Key": "Name",
-					"Value": {
-						"Ref": "DBName"
-					}
-				}]
-			}
-		},
-		"DatabaseReplicaInstance": {
-			"Type": "AWS::RDS::DBInstance",
-			"DependsOn": "DatabasePrimaryInstance",
-			"Properties": {
-				"Engine": "aurora",
-				"DBClusterIdentifier": {
-					"Ref": "DatabaseCluster"
-				},
-				"DBInstanceIdentifier": {
-					"Fn::Join": ["", [{
-						"Ref": "DBName"
-					}, "-2"]]
-
-				},
-				"DBInstanceClass": {
-					"Ref": "DBInstanceClass"
-				},
-				"DBSubnetGroupName": {
-					"Ref": "SubnetGroup"
+				"DBParameterGroupName": {
+					"Ref": "RDSDBParameterGroup"
 				},
 				"Tags": [{
 					"Key": "Name",
@@ -150,8 +143,6 @@
 				}]
 			}
 		}
-
-
 	},
 
 	"Outputs": {
@@ -164,11 +155,11 @@
 					},
 					"://",
 					{
-						"Fn::GetAtt": ["DatabaseCluster", "Endpoint.Address"]
+						"Fn::GetAtt": ["MyDB", "Endpoint.Address"]
 					},
 					":",
 					{
-						"Fn::GetAtt": ["DatabaseCluster", "Endpoint.Port"]
+						"Fn::GetAtt": ["MyDB", "Endpoint.Port"]
 					},
 					"/",
 					{
@@ -180,19 +171,13 @@
 		"Endpoint": {
 			"Description": "RDS Writer Endpoint",
 			"Value": {
-				"Fn::GetAtt": ["DatabaseCluster", "Endpoint.Address"]
-			}
-		},
-		"ReadEndpoint": {
-			"Description": "RDS Writer Endpoint",
-			"Value": {
-				"Fn::GetAtt": ["DatabaseCluster", "ReadEndpoint.Address"]
+				"Fn::GetAtt": ["MyDB", "Endpoint.Address"]
 			}
 		},
 		"Port": {
 			"Description": "RDS Port",
 			"Value": {
-				"Fn::GetAtt": ["DatabaseCluster", "Endpoint.Port"]
+				"Fn::GetAtt": ["MyDB", "Endpoint.Port"]
 			}
 		},
 		"EngineInfo": {
